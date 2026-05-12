@@ -39,7 +39,7 @@
 #slide[
   = Context
 
-  Some programs have access to sensitive variables
+  Some programs have access to sensitive variables, e.g.
   - passwords
   - cryprographic keys
 
@@ -84,7 +84,7 @@
     l = true;
   } else {
     l = false
-  } // private variable in implicitely leaked
+  } // private variable is implicitely leaked
   ```
 
   _Goal_: detect all implicit and explicit flows from private variables to public variables
@@ -93,8 +93,8 @@
 #slide[
   = How ?
 
-  - _Static checking_: analyze the program before it runs and prevent execution if it is unsecure
-  - _Dynamic checking_: monitor the program while it runs and stop if it leaks private data
+  - _Static control_: analyze the program before it runs and prevent execution if it is unsecure
+  - _Dynamic control_: monitor the program while it runs and stop if it leaks private data
 ]
 
 #new-section[Static Control]
@@ -102,11 +102,12 @@
 #slide[
   = Definitions
 
-  _Security latice_: $(cal(L), subset.sq.eq, union.sq, top, bot)$
+  _Security lattice_: $(cal(L), subset.sq.eq, union.sq, inter.sq, top, bot)$
   - $cal(L) = {H, L}$ the set of security labels
   - $subset.eq.sq$ the ordering relation : $L subset.sq.eq H, H subset.sq.eq.not L$
     - Information can flow from $L$ to $H$ but not from $H$ to $L$
   - $union.sq$ the join operator, $L union.sq H = H$
+  - $inter.sq$ the meet operator, $L inter.sq H = L$
   - $top = H$, the highest label
   - $bot = L$, the lowest label
   
@@ -430,7 +431,7 @@
   = Definitions
 
   - The program has a memory $m$, $m' = m[x -> a]$ means $m'$ is $m$ but with the value $a$ assigned to the valiable $x$
-  - The security context $cal(C) = (p c, e c, r c)$ is composed of the program context, the excpetion context and the return context.
+  - The security context $cal(C) = (p c, e c, r c)$ is composed of the program context, the exception context and the return context.
     It tracks the various security levels during the execution of the program
   - In the program, variables contain labeled values, written $n^l$. $n$ is the value and $l$ is the label, e.g. $5^"high"$ is the number 5 with label high
   - $cal(C) tack chevron.l P, m chevron.r --> m'$ means that the evaluation of statement $P$ on memory $m$ produces memory $m'$ and is safe in program context $cal(C)$
@@ -440,45 +441,47 @@
 #slide[
   = Understanting monitor rules
 
-  #set text(14pt)
   
-  #align(center, rule-set(
-    prooftree(
-      rule(
-        name: smallcaps("M-Assign"),
-        $(p c, e c, r c) tack chevron.l e, m chevron.r --> chevron.l n^l, m' chevron.r$,
-        $m'(x) = n_0^l_0$,
-        $p c subset.sq.eq l_0$,
-        $(p c, e c, r c) tack chevron.l x=e, m chevron.r --> m'[x-->n^(l union.sq p c)]$
+  #text(14pt)[
+    #align(center, rule-set(
+      prooftree(
+        rule(
+          name: smallcaps("M-Assign"),
+          $(p c, e c, r c) tack chevron.l e, m chevron.r --> chevron.l n^l, m' chevron.r$,
+          $m'(x) = n_0^l_0$,
+          $p c subset.sq.eq l_0$,
+          $(p c, e c, r c) tack chevron.l x=e, m chevron.r --> m'[x-->n^(l union.sq p c)]$
+        )
+      ),
+      prooftree(
+        rule(
+          name: smallcaps("M-Literal"),
+          $cal(C) tack chevron.l n, m chevron.r --> chevron.l n^"low", m chevron.r$
+        )
       )
-    ),
-    prooftree(
-      rule(
-        name: smallcaps("M-Literal"),
-        $cal(C) tack chevron.l n, m chevron.r --> chevron.l n^"low", m chevron.r$
-      )
-    )
-  ))
+    ))
+  ]
 
 
   #text(22pt)[Let's try to evaluate the program $x = 2$ in memory $m = {x -> 1^"low"}$ and context $cal(C) = ("high", e c, r c)$] 
 
   
-  #set text(16pt)
-  #align(center, rule-set(
-    prooftree(
-      rule(
-        name: smallcaps("M-Assign"),
+  #text(16pt)[
+    #align(center, rule-set(
+      prooftree(
         rule(
-          name: smallcaps("M-Literal"),
-          text(green)[$("high", e c, r c) tack chevron.l 2, {} chevron.r --> chevron.l 2^"high", {} chevron.r$],
-        ),
-        text(green)[$m(x) = 1^"low"$],
-        text(red)[$"high" subset.sq.eq "low"$],
-        $("high", e c, r c) tack chevron.l x = 2, m chevron.r --> m'[x-->2^"high"]$
+          name: smallcaps("M-Assign"),
+          rule(
+            name: smallcaps("M-Literal"),
+            text(green)[$("high", e c, r c) tack chevron.l 2, {} chevron.r --> chevron.l 2^"high", {} chevron.r$],
+          ),
+          text(green)[$m(x) = 1^"low"$],
+          text(red)[$"high" subset.sq.eq "low"$],
+          $("high", e c, r c) tack chevron.l x = 2, m chevron.r --> m'[x-->2^"high"]$
+        )
       )
-    )
-  ))
+    ))
+  ]
 
   
   #text(22pt)[The evaluation of the statement is invalid with these monitor rules, so the program is stopped] 
@@ -502,7 +505,9 @@
 
   Go to _ https://dynamicflowchallenge.github.io _
 
-  #qr-code("https://dynamicflowchallenge.github.io/")
+  #align(center,
+    qr-code("https://dynamicflowchallenge.github.io/")
+  )
 ]
 
 #slide[
@@ -613,7 +618,7 @@
 #slide[
   = Challenge Three: Fixing the Error
 
-  To fix the error from challenge three, we enforce the "No sensitive upgrade" rule that says that we cannot raise the lable of a variable when assigning.
+  To fix the error from challenge three, we enforce the "No sensitive upgrade" rule that says that we cannot raise the label of a variable when assigning in secure context.
   #align(center, rule-set(
     prooftree(
       rule(
