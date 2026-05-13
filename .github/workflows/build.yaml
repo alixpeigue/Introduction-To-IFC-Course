@@ -11,8 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         
-      - name: Typst
+      - name: Install Typst
         uses: typst-community/setup-typst@v5
+        
+      - name: Compile
         run: typst compile src/course.typ course.pdf
 
       - name: Upload PDF file
